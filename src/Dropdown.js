@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react';
 
-const Dropdown = ({ items, position, onSelect }) => {
+const Dropdown = forwardRef(({ items, position, onSelect }, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const handleKeyDown = (event) => {
     if (event.key === 'ArrowDown') {
+      event.preventDefault();
       setSelectedIndex((prev) => (prev + 1) % items.length);
     } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
       setSelectedIndex((prev) => (prev - 1 + items.length) % items.length);
     } else if (event.key === 'Enter') {
       event.preventDefault();
@@ -23,6 +25,7 @@ const Dropdown = ({ items, position, onSelect }) => {
 
   return (
     <div
+      ref={ref}
       style={{
         position: 'fixed',
         top: position.top,
@@ -40,6 +43,7 @@ const Dropdown = ({ items, position, onSelect }) => {
       {items.map((item, index) => (
         <div
           key={item.column}
+          onMouseEnter={() => setSelectedIndex(index)} // Highlight on hover
           onClick={() => onSelect(item)}
           style={{
             padding: '10px',
@@ -53,6 +57,6 @@ const Dropdown = ({ items, position, onSelect }) => {
       ))}
     </div>
   );
-};
+});
 
 export default Dropdown;

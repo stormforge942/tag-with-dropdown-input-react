@@ -1,18 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Dropdown from './Dropdown';
 
 const mockData = [
   { column: 'Name', value: 'John Doe' },
   { column: 'Email', value: 'john.doe@example.com' },
   { column: 'Address', value: '123 Main St' },
-  // Add more mock data as needed
 ];
 
 const ColumnSelector = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const [dropdownItems, setDropdownItems] = useState(mockData);
+  const [filteredItems, setFilteredItems] = useState(mockData);
+  const [currentQuery, setCurrentQuery] = useState('');
   const editableDivRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const initialDropdownPosition = useRef(null);
 
   const handleInputChange = () => {
     const editableDiv = editableDivRef.current;
@@ -22,19 +24,30 @@ const ColumnSelector = () => {
     if (editableDiv && range) {
       const { startContainer, startOffset } = range;
 
-      // Check if the cursor is within a text node and `/` is just typed
-      if (
-        startContainer.nodeType === Node.TEXT_NODE &&
-        startContainer.textContent[startOffset - 1] === '/'
-      ) {
-        const rect = range.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom,
-          left: rect.left,
-        });
-        setShowDropdown(true);
-      } else {
-        setShowDropdown(false);
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        const textContent = startContainer.textContent;
+        const slashIndex = textContent.lastIndexOf('/');
+
+        if (slashIndex !== -1 && startOffset > slashIndex) {
+          const query = textContent.slice(slashIndex + 1, startOffset).toLowerCase();
+
+          setCurrentQuery(query);
+          setFilteredItems(
+            mockData.filter((item) =>
+              item.column.toLowerCase().includes(query)
+            )
+          );
+
+          if (textContent[startOffset - 1] === '/' || !initialDropdownPosition.current) {
+            const rect = range.getBoundingClientRect();
+            initialDropdownPosition.current = { top: rect.bottom, left: rect.left };
+            setDropdownPosition(initialDropdownPosition.current);
+          }
+
+          setShowDropdown(true);
+        } else {
+          setShowDropdown(false);
+        }
       }
     }
   };
@@ -44,14 +57,20 @@ const ColumnSelector = () => {
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
 
+    console.log('selected');
+    console.log(selection, range);
+
     if (editableDiv && range) {
-      // Remove the `/` character
       if (range.startContainer.nodeType === Node.TEXT_NODE) {
-        range.setStart(range.startContainer, range.startOffset - 1);
-        range.deleteContents();
+        const textContent = range.startContainer.textContent;
+        const slashIndex = textContent.lastIndexOf('/');
+
+        if (slashIndex !== -1) {
+          range.setStart(range.startContainer, slashIndex);
+          range.deleteContents();
+        }
       }
 
-      // Create a chip element
       const chip = document.createElement('span');
       chip.contentEditable = 'false';
       chip.innerText = item.column;
@@ -65,17 +84,36 @@ const ColumnSelector = () => {
         cursor: pointer;
       `;
 
-      const space = document.createTextNode(' '); // Add space after the chip
+      const space = document.createTextNode(' ');
 
       range.insertNode(space);
       range.insertNode(chip);
 
-      selection.collapseToEnd(); // Move the cursor after the chip
+      selection.collapseToEnd();
     }
 
-    // Reset dropdown visibility
     setShowDropdown(false);
+    initialDropdownPosition.current = null;
   };
+
+  const handleClickOutside = (event) => {
+    if (
+      editableDivRef.current &&
+      !editableDivRef.current.contains(event.target) &&
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target)
+    ) {
+      setShowDropdown(false);
+      initialDropdownPosition.current = null;
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div style={{ position: 'relative', width: '100%', padding: '10px' }}>
@@ -95,9 +133,10 @@ const ColumnSelector = () => {
         }}
         placeholder="Type here..."
       />
-      {showDropdown && (
+      {showDropdown && filteredItems.length > 0 && (
         <Dropdown
-          items={dropdownItems}
+          ref={dropdownRef}
+          items={filteredItems}
           position={dropdownPosition}
           onSelect={handleSelectItem}
         />
