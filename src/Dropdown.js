@@ -26,7 +26,7 @@ const Dropdown = forwardRef(({ items, position, onSelect }, ref) => {
   return (
     <div
       ref={ref}
-      className="dropdown" // Add className for reference
+      className="dropdown"
       style={{
         position: 'fixed',
         top: position.top,

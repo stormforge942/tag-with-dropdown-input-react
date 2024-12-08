@@ -43,7 +43,7 @@ const ColumnSelector = () => {
             setShowDropdown(true);
           }
 
-          savedRangeRef.current = range.cloneRange(); // Save the range
+          savedRangeRef.current = range.cloneRange();
         } else {
           setShowDropdown(false);
         }
@@ -55,11 +55,10 @@ const ColumnSelector = () => {
     const editableDiv = editableDivRef.current;
   
     if (editableDiv && savedRangeRef.current) {
-      editableDiv.focus(); // Restore focus to the editable div
+      editableDiv.focus();
   
       const range = savedRangeRef.current;
   
-      // Remove the `/` and query
       if (range.startContainer.nodeType === Node.TEXT_NODE) {
         const textContent = range.startContainer.textContent;
         const slashIndex = textContent.lastIndexOf('/');
@@ -70,7 +69,6 @@ const ColumnSelector = () => {
         }
       }
   
-      // Create a chip element
       const chip = document.createElement('span');
       chip.contentEditable = 'false';
       chip.innerText = item.column;
@@ -89,16 +87,15 @@ const ColumnSelector = () => {
       range.insertNode(space);
       range.insertNode(chip);
   
-      // Fix the selection and place the cursor after the chip
       const selection = window.getSelection();
-      selection.removeAllRanges(); // Clear current selection
-      const newRange = document.createRange(); // Create a new range
-      newRange.setStartAfter(space); // Place the cursor after the space node
-      newRange.collapse(true); // Collapse the range to a single point
-      selection.addRange(newRange); // Set the new range as the current selection
+      selection.removeAllRanges();
+      const newRange = document.createRange();
+      newRange.setStartAfter(space);
+      newRange.collapse(true);
+      selection.addRange(newRange);
   
       setShowDropdown(false);
-      savedRangeRef.current = null; // Clear saved range
+      savedRangeRef.current = null;
     }
   };
 
@@ -106,7 +103,7 @@ const ColumnSelector = () => {
     if (
       editableDivRef.current &&
       !editableDivRef.current.contains(event.target) &&
-      !event.target.closest('.dropdown') // Prevent closing when clicking inside the dropdown
+      !event.target.closest('.dropdown')
     ) {
       setShowDropdown(false);
     }
