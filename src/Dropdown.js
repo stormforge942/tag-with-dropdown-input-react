@@ -26,6 +26,7 @@ const Dropdown = forwardRef(({ items, position, onSelect }, ref) => {
   return (
     <div
       ref={ref}
+      className="dropdown" // Add className for reference
       style={{
         position: 'fixed',
         top: position.top,
@@ -43,7 +44,7 @@ const Dropdown = forwardRef(({ items, position, onSelect }, ref) => {
       {items.map((item, index) => (
         <div
           key={item.column}
-          onMouseEnter={() => setSelectedIndex(index)} // Highlight on hover
+          onMouseEnter={() => setSelectedIndex(index)}
           onClick={() => onSelect(item)}
           style={{
             padding: '10px',

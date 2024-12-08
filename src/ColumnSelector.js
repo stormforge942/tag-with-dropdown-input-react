@@ -13,8 +13,7 @@ const ColumnSelector = () => {
   const [filteredItems, setFilteredItems] = useState(mockData);
   const [currentQuery, setCurrentQuery] = useState('');
   const editableDivRef = useRef(null);
-  const dropdownRef = useRef(null);
-  const initialDropdownPosition = useRef(null);
+  const savedRangeRef = useRef(null);
 
   const handleInputChange = () => {
     const editableDiv = editableDivRef.current;
@@ -38,13 +37,13 @@ const ColumnSelector = () => {
             )
           );
 
-          if (textContent[startOffset - 1] === '/' || !initialDropdownPosition.current) {
+          if (!showDropdown) {
             const rect = range.getBoundingClientRect();
-            initialDropdownPosition.current = { top: rect.bottom, left: rect.left };
-            setDropdownPosition(initialDropdownPosition.current);
+            setDropdownPosition({ top: rect.bottom, left: rect.left });
+            setShowDropdown(true);
           }
 
-          setShowDropdown(true);
+          savedRangeRef.current = range.cloneRange(); // Save the range
         } else {
           setShowDropdown(false);
         }
@@ -54,23 +53,24 @@ const ColumnSelector = () => {
 
   const handleSelectItem = (item) => {
     const editableDiv = editableDivRef.current;
-    const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-
-    console.log('selected');
-    console.log(selection, range);
-
-    if (editableDiv && range) {
+  
+    if (editableDiv && savedRangeRef.current) {
+      editableDiv.focus(); // Restore focus to the editable div
+  
+      const range = savedRangeRef.current;
+  
+      // Remove the `/` and query
       if (range.startContainer.nodeType === Node.TEXT_NODE) {
         const textContent = range.startContainer.textContent;
         const slashIndex = textContent.lastIndexOf('/');
-
+  
         if (slashIndex !== -1) {
           range.setStart(range.startContainer, slashIndex);
           range.deleteContents();
         }
       }
-
+  
+      // Create a chip element
       const chip = document.createElement('span');
       chip.contentEditable = 'false';
       chip.innerText = item.column;
@@ -83,28 +83,32 @@ const ColumnSelector = () => {
         font-size: 14px;
         cursor: pointer;
       `;
-
+  
       const space = document.createTextNode(' ');
-
+  
       range.insertNode(space);
       range.insertNode(chip);
-
-      selection.collapseToEnd();
+  
+      // Fix the selection and place the cursor after the chip
+      const selection = window.getSelection();
+      selection.removeAllRanges(); // Clear current selection
+      const newRange = document.createRange(); // Create a new range
+      newRange.setStartAfter(space); // Place the cursor after the space node
+      newRange.collapse(true); // Collapse the range to a single point
+      selection.addRange(newRange); // Set the new range as the current selection
+  
+      setShowDropdown(false);
+      savedRangeRef.current = null; // Clear saved range
     }
-
-    setShowDropdown(false);
-    initialDropdownPosition.current = null;
   };
 
   const handleClickOutside = (event) => {
     if (
       editableDivRef.current &&
       !editableDivRef.current.contains(event.target) &&
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target)
+      !event.target.closest('.dropdown') // Prevent closing when clicking inside the dropdown
     ) {
       setShowDropdown(false);
-      initialDropdownPosition.current = null;
     }
   };
 
@@ -135,7 +139,6 @@ const ColumnSelector = () => {
       />
       {showDropdown && filteredItems.length > 0 && (
         <Dropdown
-          ref={dropdownRef}
           items={filteredItems}
           position={dropdownPosition}
           onSelect={handleSelectItem}
